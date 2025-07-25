@@ -3,6 +3,7 @@
 // for scroll behaviour
 const whatSection = document.getElementById("what");
 const whatBounds = whatSection.getBoundingClientRect()
+const explainBtn = document.getElementById("explain")
 
 function scrollToWhat() {
     console.log("Scrolling to", whatBounds.y)
@@ -23,7 +24,6 @@ if (history.scrollRestoration) {
 // for download buttons
 const downloadPage = "https://google.com"
 const downloadBtns = document.getElementsByClassName("downloadBtn");
-const explainBtn = document.getElementById("explain")
 
 function visitDownloadPage() {
     window.open(downloadPage, '_blank').focus();
