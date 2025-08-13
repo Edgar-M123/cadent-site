@@ -22,7 +22,6 @@
 		"vite": "^7.0.4",
 		"wrangler": "^4.29.1"
 	},
-	"packageManager": "yarn@4.9.2",
 	"dependencies": {
 		"google-auth-library": "^10.2.1",
 		"google-spreadsheet": "^5.0.2",
