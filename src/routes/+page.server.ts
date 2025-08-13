@@ -3,7 +3,6 @@ import { GOOGLE_SPREADSHEET_ID, GOOGLE_SHEET_PRIVATE_KEY, GOOGLE_SHEET_CLIENT_EM
 import type { Actions } from './$types'
 import {JWT} from 'google-auth-library'
 import {GoogleSpreadsheet} from 'google-spreadsheet'
-import {Resend} from 'resend'
 import { waitlistEmail } from '$lib/emailTemplates/waitlistConfirmation';
 
 // Simple in-memory rate limiting
@@ -15,22 +14,33 @@ const serviceAccountAuth = new JWT({
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
-const resend = new Resend(RESEND_API_KEY)
-
 export const actions = {
     waitlist: addEmail
 } satisfies Actions
 
 
-function sendConfirmation(email: string) {
-
-  resend.emails.send({
-    from: 'Cadent App <confirm@waitlist.cadentapp.com>',
-    to: email,
-    subject: 'Thank you for signing up!',
-    html: waitlistEmail
+async function sendConfirmation(email: string) {
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'Cadent App <confirm@waitlist.cadentapp.com>',
+      to: [email],
+      subject: 'Thank you for signing up!',
+      html: waitlistEmail
+    })
   });
 
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Email send failed:', errorText);
+    throw new Error(`Failed to send email: ${response.status}`);
+  }
+
+  return await response.json();
 }
 
 async function addEmail({ request }: any) {
