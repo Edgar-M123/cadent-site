@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { GOOGLE_SPREADSHEET_ID, GOOGLE_SHEET_PRIVATE_KEY, GOOGLE_SHEET_CLIENT_EMAIL, RESEND_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { Actions } from './$types'
 import {JWT} from 'google-auth-library'
 import {GoogleSpreadsheet} from 'google-spreadsheet'
@@ -9,8 +9,8 @@ import { waitlistEmail } from '$lib/emailTemplates/waitlistConfirmation';
 const submissions = new Map();
 
 const serviceAccountAuth = new JWT({
-  email: GOOGLE_SHEET_CLIENT_EMAIL,
-  key: GOOGLE_SHEET_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  email: env.GOOGLE_SHEET_CLIENT_EMAIL,
+  key: env.GOOGLE_SHEET_PRIVATE_KEY.replace(/\\n/g, '\n'),
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
@@ -23,7 +23,7 @@ async function sendConfirmation(email: string) {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -74,7 +74,7 @@ async function addEmail({ request }: any) {
     }
  
     // Google Sheets API call
-    const doc = new GoogleSpreadsheet(GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
+    const doc = new GoogleSpreadsheet(env.GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
     await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
     
