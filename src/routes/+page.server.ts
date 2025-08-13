@@ -1,5 +1,7 @@
 import type { Actions } from './$types';
 import { env } from '$env/dynamic/private';
+import {JWT} from 'google-auth-library';
+import {GoogleSpreadsheet} from 'google-spreadsheet';
 
 // Simple in-memory rate limiting
 const submissions = new Map();
@@ -9,8 +11,6 @@ export const actions = {
 } satisfies Actions
 
 async function sendConfirmation(email: string) {
-  console.log('RESEND_API_KEY exists:', !!env.RESEND_API_KEY);
-  
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -57,6 +57,23 @@ async function addEmail({ request }: any) {
         message: 'Please wait 5 minutes before submitting again'
       };
     }
+
+    // Create JWT inside the function (this was the issue!)
+    const serviceAccountAuth = new JWT({
+      email: env.GOOGLE_SHEET_CLIENT_EMAIL,
+      key: env.GOOGLE_SHEET_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    // Google Sheets API call
+    const doc = new GoogleSpreadsheet(env.GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = doc.sheetsByIndex[0];
+    
+    await sheet.addRow({
+      'timestamp': new Date(),
+      'email': email,
+    });
 
     submissions.set(emailKey, now);
 
