@@ -1,7 +1,5 @@
 import type { Actions } from './$types';
 import { env } from '$env/dynamic/private';
-import {JWT} from 'google-auth-library';
-import {GoogleSpreadsheet} from 'google-spreadsheet';
 
 // Simple in-memory rate limiting
 const submissions = new Map();
@@ -56,53 +54,6 @@ async function addEmail({ request }: any) {
         status: "error",
         message: 'Please wait 5 minutes before submitting again'
       };
-    }
-
-    // Check Google Sheets environment variables
-    console.log('Google env check:', {
-      hasClientEmail: !!env.GOOGLE_SHEET_CLIENT_EMAIL,
-      hasPrivateKey: !!env.GOOGLE_SHEET_PRIVATE_KEY,
-      hasSpreadsheetId: !!env.GOOGLE_SPREADSHEET_ID
-    });
-
-    if (!env.GOOGLE_SHEET_CLIENT_EMAIL || !env.GOOGLE_SHEET_PRIVATE_KEY || !env.GOOGLE_SPREADSHEET_ID) {
-      console.error('Missing Google Sheets environment variables');
-      // Skip Google Sheets for now, just send email
-      await sendConfirmation(email);
-      submissions.set(emailKey, now);
-      return {
-        status: 'success',
-        message: 'Email added to waitlist!'
-      };
-    }
-
-    try {
-      // Create JWT inside the function
-      console.log('Creating JWT...');
-      const serviceAccountAuth = new JWT({
-        email: env.GOOGLE_SHEET_CLIENT_EMAIL,
-        key: env.GOOGLE_SHEET_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-      });
-
-      console.log('Connecting to Google Spreadsheet...');
-      // Google Sheets API call
-      const doc = new GoogleSpreadsheet(env.GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
-      await doc.loadInfo();
-      console.log('Spreadsheet loaded, adding row...');
-      
-      const sheet = doc.sheetsByIndex[0];
-      await sheet.addRow({
-        'timestamp': new Date(),
-        'email': email,
-      });
-      
-      console.log('Row added successfully');
-      
-    } catch (googleError) {
-      console.error('Google Sheets error:', googleError);
-      // Continue anyway, just send email
-      console.log('Continuing without Google Sheets...');
     }
 
     submissions.set(emailKey, now);
