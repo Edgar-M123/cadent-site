@@ -3,6 +3,8 @@
 </svelte:head>
 
 <script lang='ts'>
+
+    console.log("page loads")
     const videoFile = "/cadent-website-vid.mp4"
     let whatSection = $state<Element>();
         
