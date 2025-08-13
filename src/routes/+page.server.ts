@@ -1,8 +1,10 @@
-import { json, error } from '@sveltejs/kit';
-import { GOOGLE_SPREADSHEET_ID, GOOGLE_SHEET_API_KEY, GOOGLE_SHEET_PRIVATE_KEY, GOOGLE_SHEET_CLIENT_EMAIL } from '$env/static/private';
+import { error } from '@sveltejs/kit';
+import { GOOGLE_SPREADSHEET_ID, GOOGLE_SHEET_PRIVATE_KEY, GOOGLE_SHEET_CLIENT_EMAIL, RESEND_API_KEY } from '$env/static/private';
 import type { Actions } from './$types'
 import {JWT} from 'google-auth-library'
 import {GoogleSpreadsheet} from 'google-spreadsheet'
+import {Resend} from 'resend'
+import { waitlistEmail } from '$lib/emailTemplates/waitlistConfirmation';
 
 // Simple in-memory rate limiting
 const submissions = new Map();
@@ -13,10 +15,23 @@ const serviceAccountAuth = new JWT({
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
+const resend = new Resend(RESEND_API_KEY)
+
 export const actions = {
     waitlist: addEmail
 } satisfies Actions
 
+
+function sendConfirmation(email: string) {
+
+  resend.emails.send({
+    from: 'Cadent App <confirm@waitlist.cadentapp.com>',
+    to: email,
+    subject: 'Thank you for signing up!',
+    html: waitlistEmail
+  });
+
+}
 
 async function addEmail({ request }: any) {
   try {
@@ -60,6 +75,8 @@ async function addEmail({ request }: any) {
 
     // Update rate limiting
     submissions.set(emailKey, now);
+
+    sendConfirmation(email);
     
     return {
       status: 'success',
@@ -76,3 +93,4 @@ async function addEmail({ request }: any) {
     throw error(500, 'Internal server error');
   }
 }
+

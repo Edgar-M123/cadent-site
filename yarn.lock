@@ -659,6 +659,7 @@ __metadata:
     "@sveltejs/vite-plugin-svelte": "npm:^6.0.0"
     google-auth-library: "npm:^10.2.1"
     google-spreadsheet: "npm:^5.0.2"
+    resend: "npm:^6.0.1"
     svelte: "npm:^5.0.0"
     svelte-check: "npm:^4.0.0"
     typescript: "npm:^5.0.0"
@@ -1547,6 +1548,18 @@ __metadata:
   version: 4.1.2
   resolution: "readdirp@npm:4.1.2"
   checksum: 10c0/60a14f7619dec48c9c850255cd523e2717001b0e179dc7037cfa0895da7b9e9ab07532d324bfb118d73a710887d1e35f79c495fa91582784493e085d18c72c62
+  languageName: node
+  linkType: hard
+
+"resend@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "resend@npm:6.0.1"
+  peerDependencies:
+    "@react-email/render": ^1.1.0
+  peerDependenciesMeta:
+    "@react-email/render":
+      optional: true
+  checksum: 10c0/9ee141db15e0269e37f1b6c51650f7e99b5e71217fac2b36310e405bfd6da5d0a1264bcc212c0682ad0ef5c75b65f1f52a8f2fda82724ef70224212aab96a8d8
   languageName: node
   linkType: hard
 
