@@ -1,9 +1,9 @@
 import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { Actions } from './$types'
-// import {JWT} from 'google-auth-library'
-// import {GoogleSpreadsheet} from 'google-spreadsheet'
-// import { waitlistEmail } from '$lib/emailTemplates/waitlistConfirmation';
+import {JWT} from 'google-auth-library'
+import {GoogleSpreadsheet} from 'google-spreadsheet'
+import { waitlistEmail } from '$lib/emailTemplates/waitlistConfirmation';
 
 // Simple in-memory rate limiting
 const submissions = new Map();
