@@ -2,38 +2,62 @@
     <title>Cadent</title>
 </svelte:head>
 
+<script lang='ts'>
+    const videoFile = "/cadent-website-vid.mp4"
+    let whatSection = $state<Element>();
+        
+    function scrollToExplain() {
+        const whatBounds = whatSection?.getBoundingClientRect()
+        
+        console.log("Scrolling to", whatBounds?.y)
+        scrollTo(0, whatBounds?.y)
+
+    }
+
+</script>
+
 <div class="aboveFold">
-            
-    <h1 class="title">Just do the <br/> <strong class="scTextColor">f*cking work</strong></h1>
 
-    <ul class="main-list">
-        <li>No learning curve.</li>
-        <li>No thinking of titles or descriptions.</li>
-        <li>No figuring out how the app works.</li>
-        <li>Just tell it what you want.</li>
-        <li><strong>Do the work.</strong></li>
-    </ul>
+    <div class="headline-card">
+        <h1 class="title">Just do the <br/> <strong class="scTextColor">f*cking work</strong></h1>
     
-    <div class="downloadArea">
-        <!-- <button class = 'downloadBtn'>
-            <span class="material-symbols--download"></span>
-            Get the app
-        </button> -->
-
-        <form id="waitlistForm" method='POST' action="?/waitlist">
-            <input id="emailInput" name='email' type="email" placeholder="youremail@example.com">
-            <button id="joinWaitlistBtn" formaction="?/waitlist">Join Waitlist</button>
-        </form>
-
-        <button id="explain">
-            I still don't understand this app
-        </button>
+        <ul class="main-list">
+            <li>No learning curve.</li>
+            <li>No thinking of titles or descriptions.</li>
+            <li>No figuring out how the app works.</li>
+            <li>Just tell it what you want.</li>
+            <li><strong>Do the work.</strong></li>
+        </ul>
+        
+        <div class="downloadArea">
+            <!-- <button class = 'downloadBtn'>
+                <span class="material-symbols--download"></span>
+                Get the app
+                </button> -->
+                
+                <form id="waitlistForm" method='POST' action="?/waitlist">
+                    <input id="emailInput" name='email' type="email" placeholder="youremail@example.com">
+                    <button id="joinWaitlistBtn" formaction="?/waitlist">Join Waitlist</button>
+                </form>
+                
+            <button onclick={scrollToExplain} id="explain">
+                I still don't understand this app
+            </button>
+        </div>
+        
+    </div>
+    
+    <div>
+        <video width=1200 autoplay muted loop disablepictureinpicture playsinline>
+            <track kind='captions'/>
+            <source src={videoFile}/>
+        </video>
     </div>
 
 </div>
 
 
-<h2 id="what">What is <span class="scTextColor">Cadent</span> and how would it help me work?</h2>
+<h2 bind:this={whatSection} id="what">What is <span class="scTextColor">Cadent</span> and how would it help me work?</h2>
 <p>
     I am tired of productivity apps being so convoluted and doing so many things at once. 
     I feel like I spend more time trying to do productivity “right”, that I actually become less productive. 
@@ -100,10 +124,15 @@
 
 <style>
 
-input, button {
+:root {
+    margin-left: 2rem;
+    margin-right: 2rem;
+}
+
+:root, input, button {
     font-family: "Outfit", sans-serif;
-    font-size: 20px;
     color: #FFFFFF;
+    font-size: 20px;
 }
 
 
@@ -131,14 +160,22 @@ h1 {
     font-size: 6rem;
     font-weight: normal;
     margin-bottom: 0;
-}    
+}
+
+h2 {
+    font-size: 1.7rem;
+}
+
+video {
+    max-width: 30rem;
+}
 
 .scTextColor {
     color: #FBB6B6
 }    
 
 .main-list {
-    font-size: 40px;
+    font-size: 2rem;
     font-weight: lighter;
 }    
 
@@ -150,6 +187,7 @@ h1 {
     gap: 14px
 }
 
+
 .downloadBtn {
     background-color: #F87171;
     color: white;
@@ -158,7 +196,7 @@ h1 {
     padding-right: 20px;
     padding-left: 20px;
     font-weight: bold;
-    font-size: 30px;
+    font-size: 1.5rem;
     font-family: "Outfit", sans-serif;
     border-radius: 20px;
     border: none;
@@ -178,7 +216,7 @@ h1 {
 }
 
 #explain {
-    font-size: 20px;
+    font-size: 1rem;
     color: white;
     text-align: center;
     text-decoration: underline;
@@ -186,8 +224,8 @@ h1 {
 
 .material-symbols--download::after {
   display: inline-block;
-  width: 40px;
-  height: 40px;
+  width: 2rem;
+  height: 2rem;
   color: white;
   vertical-align: bottom;
   content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='m12 16l-5-5l1.4-1.45l2.6 2.6V4h2v8.15l2.6-2.6L17 11zm-6 4q-.825 0-1.412-.587T4 18v-3h2v3h12v-3h2v3q0 .825-.587 1.413T18 20z'/%3E%3C/svg%3E");
@@ -195,8 +233,10 @@ h1 {
 
 .aboveFold {
     display: flex;
-    flex-direction: column;
-    margin-bottom: 100px;
+    flex-direction: row;
+    margin-bottom: 5rem;
+    align-items: center;
+    justify-content: space-between;
 }
 
 
@@ -207,4 +247,56 @@ h1 {
     align-items: center;
     gap: 14px;
 }
+
+
+@media (width <= 1450px) {
+    :root, input, button {
+        font-size: 18px;
+    }
+}
+
+@media (width <= 1270px) {
+    .main-list {
+        font-size: 1.5rem;
+        font-weight: lighter;
+    }
+    
+    h1 {
+        font-size: 4rem;
+    }
+}
+
+@media (width <= 1130px) {
+    :root, input, button {
+        font-size: 16px;
+    }
+}
+
+@media (width <= 990px) {
+    .aboveFold {
+        flex-direction: column;
+        gap: 3rem;
+    }
+
+    h1 {
+        text-align: center;
+    }
+}
+
+@media (width <= 570px) {
+    :root, input, button {
+        font-size: 14px;
+    }
+
+    h1 {
+        font-size: 4rem;
+    }
+}
+
+@media (width <= 440px) {
+    :root, input, button {
+        font-size: 12px;
+    }
+}
+
 </style>
