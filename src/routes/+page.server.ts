@@ -1,7 +1,9 @@
-import type { Actions } from './$types';
-import { env } from '$env/dynamic/private';
-import { JWT } from 'google-auth-library';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { error } from '@sveltejs/kit';
+import { GOOGLE_SPREADSHEET_ID, GOOGLE_SHEET_PRIVATE_KEY, GOOGLE_SHEET_CLIENT_EMAIL, RESEND_API_KEY } from '$env/static/private';
+import type { Actions } from './$types'
+import {JWT} from 'google-auth-library'
+import {GoogleSpreadsheet} from 'google-spreadsheet'
+import { waitlistEmail } from '$lib/emailTemplates/waitlistConfirmation';
 
 // Simple in-memory rate limiting
 const submissions = new Map();
@@ -10,18 +12,20 @@ export const actions = {
     waitlist: addEmail
 } satisfies Actions
 
+
 async function sendConfirmation(email: string) {
+  
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       from: 'Cadent App <confirm@waitlist.cadentapp.com>',
       to: [email],
       subject: 'Thank you for signing up!',
-      html: '<p>Welcome to Cadent waitlist!</p>'
+      html: waitlistEmail
     })
   });
 
@@ -34,69 +38,63 @@ async function sendConfirmation(email: string) {
   return await response.json();
 }
 
-async function addToGoogleSheets(email: string) {
-  // Check if we have all required environment variables
-  if (!env.GOOGLE_SHEET_CLIENT_EMAIL || !env.GOOGLE_SHEET_PRIVATE_KEY || !env.GOOGLE_SPREADSHEET_ID) {
-    throw new Error('Missing Google Sheets environment variables');
-  }
-
-  console.log('Creating Google Sheets connection...');
-  
-  // Create JWT inside function (not at module level)
-  const serviceAccountAuth = new JWT({
-    email: env.GOOGLE_SHEET_CLIENT_EMAIL,
-    key: env.GOOGLE_SHEET_PRIVATE_KEY,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
-
-  // Connect to Google Spreadsheet
-  const doc = new GoogleSpreadsheet(env.GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
-  await doc.loadInfo();
-  console.log(`Loaded spreadsheet: ${doc.title}`);
-  
-  const sheet = doc.sheetsByIndex[0];
-  await sheet.addRow({
-    'timestamp': new Date().toISOString(),
-    'email': email,
-  });
-  
-  console.log('Successfully added email to Google Sheets');
-}
-
 async function addEmail({ request }: any) {
   try {
+    console.log("Adding email")
     const data = await request.formData();
     const email = data.get("email")
+
+    console.log("data: ", data)
+    console.log("Email: ", email)
     
+    // Basic validation
     if (!email || !email.includes('@') || email.length > 100) {
+      console.error("No email")
       return {
         status: "error",
         message: "Email is too long, or is incorrectly formatted."
       };
     }
     
-    // Rate limiting
+    // Rate limiting by email (5 minutes cooldown)
+    console.log("adding rate limiting")
     const now = Date.now();
     const emailKey = email.toLowerCase();
     const lastSubmission = submissions.get(emailKey);
     
     if (lastSubmission && (now - lastSubmission) < 300000) {
+      console.error("Please wait 5 minutes before submitting.")
       return {
         status: "error",
         message: 'Please wait 5 minutes before submitting again'
       };
     }
 
-    // Add to Google Sheets first - this must succeed
-    await addToGoogleSheets(email);
-    console.log('Email successfully added to Google Sheets');
-
-    // Only send confirmation email if Google Sheets succeeded
-    await sendConfirmation(email);
-    console.log('Confirmation email sent');
+    console.log("creating service account auth")
     
-    // Update rate limiting only after everything succeeds
+    const serviceAccountAuth = new JWT({
+      email: GOOGLE_SHEET_CLIENT_EMAIL,
+      key: GOOGLE_SHEET_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    
+    console.log("getting sheet")
+    // Google Sheets API call
+    const doc = new GoogleSpreadsheet(GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = doc.sheetsByIndex[0];
+    
+    console.log("adding email")
+    await sheet.addRow({
+      'timestamp': new Date(),
+      'email': email,
+    });
+    
+    // Update rate limiting
     submissions.set(emailKey, now);
+    
+    console.log("sending confirmation")
+    await sendConfirmation(email);
     
     return {
       status: 'success',
@@ -106,22 +104,11 @@ async function addEmail({ request }: any) {
   } catch (err: any) {
     console.error('Waitlist error:', err);
     
-    // Return specific error messages based on what failed
-    if (err.message.includes('Google Sheets')) {
-      return {
-        status: "error",
-        message: "Failed to save email. Please try again later."
-      };
-    } else if (err.message.includes('email')) {
-      return {
-        status: "error",
-        message: "Failed to send confirmation email. Please try again later."
-      };
-    } else {
-      return {
-        status: "error",
-        message: "Something went wrong. Please try again later."
-      };
+    if (err.status) {
+      throw err;
     }
+    
+    throw error(500, 'Internal server error');
   }
 }
+
