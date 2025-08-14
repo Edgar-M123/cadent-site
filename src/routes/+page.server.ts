@@ -45,7 +45,7 @@ async function addToGoogleSheets(email: string) {
   // Create JWT inside function (not at module level)
   const serviceAccountAuth = new JWT({
     email: env.GOOGLE_SHEET_CLIENT_EMAIL,
-    key: env.GOOGLE_SHEET_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    key: env.GOOGLE_SHEET_PRIVATE_KEY,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
