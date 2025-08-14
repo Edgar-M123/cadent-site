@@ -1,5 +1,7 @@
 import type { Actions } from './$types';
 import { env } from '$env/dynamic/private';
+import { JWT } from 'google-auth-library';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 
 // Simple in-memory rate limiting
 const submissions = new Map();
@@ -32,6 +34,35 @@ async function sendConfirmation(email: string) {
   return await response.json();
 }
 
+async function addToGoogleSheets(email: string) {
+  // Check if we have all required environment variables
+  if (!env.GOOGLE_SHEET_CLIENT_EMAIL || !env.GOOGLE_SHEET_PRIVATE_KEY || !env.GOOGLE_SPREADSHEET_ID) {
+    throw new Error('Missing Google Sheets environment variables');
+  }
+
+  console.log('Creating Google Sheets connection...');
+  
+  // Create JWT inside function (not at module level)
+  const serviceAccountAuth = new JWT({
+    email: env.GOOGLE_SHEET_CLIENT_EMAIL,
+    key: env.GOOGLE_SHEET_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+
+  // Connect to Google Spreadsheet
+  const doc = new GoogleSpreadsheet(env.GOOGLE_SPREADSHEET_ID, serviceAccountAuth);
+  await doc.loadInfo();
+  console.log(`Loaded spreadsheet: ${doc.title}`);
+  
+  const sheet = doc.sheetsByIndex[0];
+  await sheet.addRow({
+    'timestamp': new Date().toISOString(),
+    'email': email,
+  });
+  
+  console.log('Successfully added email to Google Sheets');
+}
+
 async function addEmail({ request }: any) {
   try {
     const data = await request.formData();
@@ -56,10 +87,16 @@ async function addEmail({ request }: any) {
       };
     }
 
-    submissions.set(emailKey, now);
+    // Add to Google Sheets first - this must succeed
+    await addToGoogleSheets(email);
+    console.log('Email successfully added to Google Sheets');
 
-    // Send email
+    // Only send confirmation email if Google Sheets succeeded
     await sendConfirmation(email);
+    console.log('Confirmation email sent');
+    
+    // Update rate limiting only after everything succeeds
+    submissions.set(emailKey, now);
     
     return {
       status: 'success',
@@ -68,9 +105,23 @@ async function addEmail({ request }: any) {
     
   } catch (err: any) {
     console.error('Waitlist error:', err);
-    return {
-      status: "error",
-      message: "Something went wrong"
-    };
+    
+    // Return specific error messages based on what failed
+    if (err.message.includes('Google Sheets')) {
+      return {
+        status: "error",
+        message: "Failed to save email. Please try again later."
+      };
+    } else if (err.message.includes('email')) {
+      return {
+        status: "error",
+        message: "Failed to send confirmation email. Please try again later."
+      };
+    } else {
+      return {
+        status: "error",
+        message: "Something went wrong. Please try again later."
+      };
+    }
   }
 }
